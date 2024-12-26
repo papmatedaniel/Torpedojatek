@@ -1,101 +1,63 @@
 import os
+import random
+
+
+class Hajo:
+    def __init__(self, hossz: int):
+        self.hossz = hossz
+        self.megsemmisulte = 0
+        self.eltalaltkoordinatak = []
+        self.koordinatak = []
+        self.mellettekord = []
+
+
 class Torpedeo:
-    def __init__(self, tabla):
-        self.tabla = [["A)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-                      ["B)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-                      ["C)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-                      ["D)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-                      ["E)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-                      ["F)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-                      ["G)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-                      ["H)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-                      ["I)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-                      ["J)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-                      ["  ", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]]
-        self.titoktabla = [["A)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-                      ["B)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-                      ["C)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-                      ["D)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-                      ["E)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-                      ["F)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-                      ["G)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-                      ["H)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-                      ["I)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-                      ["J)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-                      ["  ", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]]
-        self.hajoklista = [{
-                                "ennyiVan": 0,
-                                "hajoHossz": 4,
-                                "maxDb": 1,
-                                'megsemmisulte': 0,
-                                'eltaltkoordinatak': [],
-                                "koordinatak": [],
-                                "mellettekord.": []
-                            }, {
-                                "ennyiVan": 0,
-                                "hajoHossz": 6,
-                                "maxDb": 1,
-                                'megsemmisulte': 0,
-                                'eltaltkoordinatak': [],
-                                "koordinatak": [],
-                                "mellettekord.": []
-                            }, {
-                                "ennyiVan": 0,
-                                "hajoHossz": 1,
-                                "maxDb": 1,
-                                'megsemmisulte': 0,
-                                'eltaltkoordinatak': [],
-                                "koordinatak": [],
-                                "mellettekord.": []
-                            }, {
-                                "ennyiVan": 0,
-                                "hajoHossz": 2,
-                                "maxDb": 1,
-                                'megsemmisulte': 0,
-                                'eltaltkoordinatak': [],
-                                "koordinatak": [],
-                                "mellettekord.": []
-                            }, {
-                                "ennyiVan": 0,
-                                "hajoHossz": 3,
-                                "maxDb": 1,
-                                'megsemmisulte': 0,
-                                'eltaltkoordinatak': [],
-                                "koordinatak": [],
-                                "mellettekord.": []
-                            }, {
-                                "ennyiVan": 0,
-                                "hajoHossz": 5,
-                                "maxDb": 1,
-                                'megsemmisulte': 0,
-                                'eltaltkoordinatak': [],
-                                "koordinatak": [],
-                                "mellettekord.": [],
-                            }]
-        self.letett_hajok_szama = sum(1 for i in self.hajoklista if i["ennyiVan"] == 1)
+    def __init__(self) -> None:
+        self.tabla = self.uj_tabla()
+        self.titoktabla = self.uj_tabla()
+        self.hajoklista = self.hajok_lista()
         self.hajokoordinatai = set()
         self.hajok_melletti_koordinatak = set()
         self.tippelt_cellak = []
         self.eltalalt_hajok_szama = 0
         self.nev = ""
 
-    def tabla_megjelenites(self, tabla):
+    def hajok_lista(self) -> list[Hajo[int]]:
+        "Létrehozza és feltölti Hajó objektumokkal a listát, amellyel visszatér"
+        random.shuffle(lista := list(range(1,7)))
+        return [Hajo(i) for i in lista]
+
+    def uj_tabla(self) -> list[list[str]]:
+        "Új táblát hoz létre"
+        return [["A)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
+                      ["B)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
+                      ["C)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
+                      ["D)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
+                      ["E)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
+                      ["F)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
+                      ["G)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
+                      ["H)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
+                      ["I)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
+                      ["J)", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
+                      ["  ", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]]
+
+    def tabla_megjelenites(self, tabla: list[list[str]]) -> None:
         "Megjeleníti a táblát"
         [print(*j) for j in tabla]
 
-    def hajo_bekeres(self):
+    def hajo_bekeres(self) -> str:
         "Bekéri a játékostól a hajó kezdőkoordinátáját"
         print("Add meg a hajó kezdő koordinátáját (A-J-ig és 0-9-ig Pl A0 vagy J9) ")
         kezdokordinata = input("Kezdő koordináta: ").upper()
         return kezdokordinata
 
-    def irany_bekeres(self):
+    def irany_bekeres(self) -> str:
         "Bekéri a játékostól az irányt"
         print("Add meg a hajó irányt (É/K/NY/D):")
         irany = input("Irány: ").upper()
         return irany
 
-    def iranyellenorzo(self, irany):
+    def iranyellenorzo(self, irany: str) -> bool:
         "Ez a függvény, ellenőrzi, hogy amennyiben szükséges megadni irányt, jól adta e meg az irányt a felhasználó."
         match irany.upper():
             case "É":
@@ -109,11 +71,11 @@ class Torpedeo:
             case other:
                 return False
 
-    def sor_oszlop_ellenorzes(self, sor, oszlop):
+    def sor_oszlop_ellenorzes(self, sor: str, oszlop: str) -> bool:
         "Ellenőrzi, hogy a kezdő koordináta pályán belül van e"
         return sor in "ABCDEFGHIJ" and oszlop in "0123456789"
 
-    def kiszamol(self, sor, oszlop, hossz, irany):
+    def kiszamol(self, sor: str, oszlop: str, hossz: int, irany: str) -> list[str]:
         "Kiszámolja a hajó további koordinátáit"
         if hossz > 1:
             sor, oszlop = ord(sor.upper()) - ord('A'), int(oszlop)
@@ -131,7 +93,7 @@ class Torpedeo:
         else:
             return  [sor + str(oszlop)]
 
-    def hajo_melletti_kordinatak(self, koordinatak):
+    def hajo_melletti_kordinatak(self, koordinatak: list[str]) -> set[str]:
         "Kiszámolja a hajó mellett lévő koordinátákat"
         mellettikord = set()
         pontok = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, 1), (1, -1), (-1, -1),
@@ -146,7 +108,7 @@ class Torpedeo:
             
         return mellettikord - set(koordinatak)
         
-    def utkozes_ellenorzo(self, hajokoordinatak):
+    def utkozes_ellenorzo(self, hajokoordinatak: list[str]) -> bool:
         "Ellenőrzi, hogy nem e ütközik más hajóval/nincs mellette közvetlen más hajó"
         hajokoordinatak = set(hajokoordinatak) 
         if hajokoordinatak & self.hajokoordinatai:
@@ -155,7 +117,7 @@ class Torpedeo:
             return False
         return True
 
-    def palyan_beluli_ellenorzes(self, hajokoordinatak):
+    def palyan_beluli_ellenorzes(self, hajokoordinatak: list[str]) -> bool:
         "Ellenőrzi, hogy a hajó összes koordinátája pályán belül van e"
         for i in hajokoordinatak:
             x, y = i[0], i[1:]
@@ -163,7 +125,7 @@ class Torpedeo:
                 return False
         return True
 
-    def hajoellenorzes(self, kezdokoordinata, hossz, irany=None):
+    def hajoellenorzes(self, kezdokoordinata: str, hossz: int, irany=None) -> list[str] | ValueError:
         "Ellenőrzi a megadott hajót, ha nem felel meg, hibát dob, ellenben vissza adja a hajó koordinátáit."
         if len(kezdokoordinata) != 2:
             raise ValueError("A kezdőkoordináta csak 2 elemből állhat egy betűből(A-J) és egy számból (0-9)")
@@ -186,28 +148,28 @@ class Torpedeo:
             
             return hajokoordinatak
 
-    def hajoelhelyezes(self, hajokoordinatak):
+    def hajoelhelyezes(self, hajokoordinatak: list[str]) -> None:
         "Ez a függvény elhelyezi a táblán az új hajót"
         for i in hajokoordinatak:
             x,y = int(i[1])+1, ord(i[0]) - ord('A')
             self.tabla[y][x] = "X"
             
-    def hajokord_es_hajokordmelletti(self, hajokoordinatak):
+    def hajokord_es_hajokordmelletti(self, hajokoordinatak: list[str]) -> None:
         "Rögzíti az új hajó koordinátáját és a mellette lévő koordinátákat"
         self.hajok_melletti_koordinatak.update(self.hajo_melletti_kordinatak(hajokoordinatak))
         self.hajokoordinatai.update(hajokoordinatak)
         
-    def hajoklistamodosito(self, hanyadikhajo, hajokoordinatak):
+    def hajoklistamodosito(self, hanyadikhajo: int, hajokoordinatak: list[str]) -> None:
         "Itt módosítjuk az összes hajó tulajdonságait, pl belerakjuk a koordinatait, és a mellette lévő koordinátákat"
-        self.hajoklista[hanyadikhajo-1]["koordinatak"] = hajokoordinatak
-        self.hajoklista[hanyadikhajo-1]["mellettekord."] = self.hajo_melletti_kordinatak(hajokoordinatak)
+        self.hajoklista[hanyadikhajo-1].koordinatak = hajokoordinatak
+        self.hajoklista[hanyadikhajo-1].mellettekord = self.hajo_melletti_kordinatak(hajokoordinatak)
 
-    def tippbekero(self, nev):
+    def tippbekero(self, nev: str) -> str:
         "Bekéri a tippeket"
         tipp = input(f"{nev}: Hova lősz?: ").upper()
         return tipp
 
-    def  tippellenorzo(self, tipp, tippjeid):
+    def  tippellenorzo(self, tipp: str, tippjeid: list[int]) -> bool | ValueError:
         "Ellenőrzi a tippet, visszatér az eredménnyel"
         if len(tipp) != 2:
             raise ValueError("2 elemből kell állnia a tippnek, egy betűből (A-J) és egy számól (0-9)")
@@ -217,22 +179,22 @@ class Torpedeo:
             raise ValueError("Ezt már tippelted...")
         return True
 
-    def hajomodositasok(self, tipp, egyik, masik):
+    def hajomodositasok(self, tipp: str, egyik: object, masik: object) -> str:
         "Módodosítja azt amit kell"
         egyik.tippelt_cellak.append(tipp)
         x,y = int(tipp[1])+1, ord(tipp[0]) - ord('A')
         if tipp in masik.hajokoordinatai:
             for i in masik.hajoklista:
-                if tipp in i["koordinatak"]:
-                    i["eltaltkoordinatak"].append(tipp)
+                if tipp in i.koordinatak:
+                    i.eltalaltkoordinatak.append(tipp)
                     masik.titoktabla[y][x] = "X"
                     szoveg = f"""\033[32m
 Eltaláltad, lövés koordinata: {tipp}
-Az eltálalált hajó hossza: {i["hajoHossz"]}
-Ennyit találtál el belőle: {len(i["eltaltkoordinatak"])}
-Ezeket a koordinátákat találtad el: {i["eltaltkoordinatak"]}\033[0m
+Az eltálalált hajó hossza: {i.hossz}
+Ennyit találtál el belőle: {len(i.eltalaltkoordinatak)}
+Ezeket a koordinátákat találtad el: {i.eltalaltkoordinatak}\033[0m
                             """
-                    if len(i["koordinatak"]) == len(i["eltaltkoordinatak"]):
+                    if len(i.koordinatak) == len(i.eltalaltkoordinatak):
                         egyik.eltalalt_hajok_szama += 1
                         szoveg += "\033[32mTalált süllyedt. \nA teljes hajó megsemmisült \033[0m"
                     self.tablakmegjelenitese(egyik.titoktabla, masik.titoktabla, egyik.nev, masik.nev)
@@ -242,15 +204,16 @@ Ezeket a koordinátákat találtad el: {i["eltaltkoordinatak"]}\033[0m
             self.tablakmegjelenitese(egyik.titoktabla, masik.titoktabla, egyik.nev, masik.nev)
             return "Nem talált"
 
-    def tablakmegjelenitese(self, tabla1, tabla2, nev1, nev2):
+    def tablakmegjelenitese(self, tabla1: list[list[str]], tabla2: list[list[str]], nev1: str, nev2: str):
         "Megjeleníti a táblákat, és a hozzájuk tartozó neveket"
         print(f"{nev1}\t\t\t\t\t{nev2}")
         for k, v in zip(tabla1, tabla2):
             print(*k, "            ", *v)
-        
 
-player1 = Torpedeo(None)
-player2 = Torpedeo(None)
+
+player1 = Torpedeo()
+player2 = Torpedeo()
+
 playerek = [player1, player2]
 for player in playerek:
     os.system("cls")
@@ -259,13 +222,12 @@ for player in playerek:
     for i, hajo in enumerate(player.hajoklista, start=1):  # Hajók listájának végigjárása
         while True:  # Addig ismétel, amíg sikeresen el nem helyezi a hajót
             try:
-                # player.tabla_megjelenites(player.tabla)
                 print(f"{player.nev} add meg a hajóid")
-                print(f"\nHelyezd el a(z) {i}. hajót! Hossz: {hajo['hajoHossz']} mező")
+                print(f"\nHelyezd el a(z) {i}. hajót! Hossz: {hajo.hossz} mező")
                 kezdokoordinata = player.hajo_bekeres()        
-                if hajo['hajoHossz'] != 1: 
+                if hajo.hossz != 1: 
                     irany = player.irany_bekeres() 
-                hajokoordinatak = player.hajoellenorzes(kezdokoordinata, hajo["hajoHossz"], irany)
+                hajokoordinatak = player.hajoellenorzes(kezdokoordinata, hajo.hossz, irany)
                 player.hajoelhelyezes(hajokoordinatak)
                 player.hajokord_es_hajokordmelletti(hajokoordinatak)
                 player.hajoklistamodosito(i, hajokoordinatak)
