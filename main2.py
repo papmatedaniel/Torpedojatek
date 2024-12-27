@@ -22,7 +22,7 @@ class Torpedeo:
         self.eltalalt_hajok_szama = 0
         self.nev = ""
 
-    def hajok_lista(self) -> list[Hajo[int]]:
+    def hajok_lista(self) -> list[Hajo(int)]:
         "Létrehozza és feltölti Hajó objektumokkal a listát, amellyel visszatér"
         random.shuffle(lista := list(range(1,7)))
         return [Hajo(i) for i in lista]
