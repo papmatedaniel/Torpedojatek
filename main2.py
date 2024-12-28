@@ -195,7 +195,7 @@ class Torpedeo:
                 if tipp_tuple in i.koordinatak:
                     i.eltalaltkoordinatak.append(tipp_tuple)
                     koordinatak_kiirasa = [
-                        ("ABCDEFGHIJ"[x] + str(y)) for x, y in i.eltalaltkoordinatak
+                        ("ABCDEFGHIJ"[y] + str(x)) for x, y in i.eltalaltkoordinatak
                     ]
                     masik.titoktabla[y][x] = "X"
                     szoveg = f"""\033[32m Eltaláltad, lövés koordinata: {tipp}
