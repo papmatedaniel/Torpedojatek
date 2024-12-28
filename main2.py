@@ -22,7 +22,7 @@ class Torpedeo:
         self.eltalalt_hajok_szama = 0
         self.nev = ""
 
-    def hajok_lista(self) -> list[Hajo(int)]:
+    def hajok_lista(self) -> list[Hajo]:
         """Létrehozza és feltölti Hajó objektumokkal a listát, amellyel visszatér"""
         random.shuffle(lista := list(range(1, 7)))
         return [Hajo(i) for i in lista]
@@ -63,23 +63,13 @@ class Torpedeo:
 
     def iranyellenorzo(self, irany: str) -> bool:
         """Ez a függvény, ellenőrzi, hogy amennyiben szükséges megadni irányt, jól adta e meg az irányt a felhasználó."""
-        match irany.upper():
-            case "É":
-                return True
-            case "D":
-                return True
-            case "NY":
-                return True
-            case "K":
-                return True
-            case _:
-                return False
+        return irany.upper() in ["É", "D", "NY", "K"]
 
     def sor_oszlop_ellenorzes(self, sor: str, oszlop: str) -> bool:
         """Ellenőrzi, hogy a kezdő koordináta pályán belül van e"""
         return sor in "ABCDEFGHIJ" and oszlop in "0123456789"
 
-    def kiszamol(self, sor: str, oszlop: str, hossz: int, irany: str) -> list[str]:
+    def kiszamol(self, sor: str, oszlop: str, hossz: int, irany: str) -> set[tuple[int, int]]:
         """Kiszámolja a hajó további koordinátáit"""
         sor, oszlop = "ABCDEFGHIJ".index(sor.upper()), int(oszlop)
         koordinatak = [(oszlop, sor)]
@@ -116,12 +106,9 @@ class Torpedeo:
         return True
 
     def palyan_beluli_ellenorzes(self, hajokoordinatak: list[tuple[int, int]]) -> bool:
-        """Ellenőrzi, hogy a hajó összes koordinátája pályán belül van e"""
-        for i in hajokoordinatak:
-            x, y = i[0], i[1]
-            if not (0 <= x <= 9 and 0 <= y <= 9):
-                return False
-        return True
+        """Ellenőrzi, hogy a hajó nem e lóg ki a pályáról"""
+        x, y = hajokoordinatak[-1]
+        return 0 <= x <= 9 and 0 <= y <= 9
 
     def hajoellenorzes(
         self, kezdokoordinata: str, hossz: int, irany=None
@@ -244,7 +231,7 @@ class Torpedeo:
                 sorbetuk[i] + ")",
                 *tabla2[i],
             )
-        print("   0 1 2 3 4 5 6 7 8 9")
+        print("   0 1 2 3 4 5 6 7 8 9                 0 1 2 3 4 5 6 7 8 9")
 
 
 player1 = Torpedeo()
