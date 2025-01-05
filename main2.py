@@ -1,306 +1,321 @@
-import os
+"""Ez a kód egy szavanna szimulációt valósít meg"""
+
 import random
+import os
 
 
-class Hajo:
-    def __init__(self, hossz: int):
-        self.hossz = hossz
-        self.megsemmisulte = 0
-        self.eltalaltkoordinatak = []
-        self.koordinatak = []
-        self.mellettekord = []
+class Allat:
+    """Állat osztály"""
+
+    def __init__(self, faj: str, pozicio: tuple[int, int], maxeletkor: int, szaporodasiido: int) -> None:
+        self.faj = faj  # Állat faja: növényevő/húsevő(ragadozó)
+        self.eletkor = 0  # Állat életkora
+        self.maxeletkor = maxeletkor  # Állat maximális életkora
+        self.pozicio = pozicio  # Állat pozíciója((x,y) koordináta)
+        self.ehsegszint = (
+            0  # Állat éhségszintje, húsevőnél évente növeljük, ha eszik 0-ra állítjuk
+        )
+        self.szaporodott_az_evben = False  # Ha szaporodott az évben True ellenben False
+        self.szaporodasiido = szaporodasiido  # Növényevő - 2, Ragadozó - 3
 
 
-class Torpedeo:
-    def __init__(self):
-        self.tabla = self.uj_tabla()
-        self.titoktabla = self.uj_tabla()
-        self.hajoklista = self.hajok_lista()
-        self.hajokoordinatai = set()
-        self.hajok_melletti_koordinatak = set()
-        self.tippelt_cellak = []
-        self.eltalalt_hajok_szama = 0
-        self.nev = ""
+class Szimulacio:
+    """Állatok mozgásának szimulációja"""
 
-    def hajok_lista(self) -> list[Hajo]:
-        """Létrehozza és feltölti Hajó objektumokkal a listát, amellyel visszatér"""
-        random.shuffle(lista := list(range(1, 7)))
-        return [Hajo(i) for i in lista]
+    def __init__(self) -> None:
+        self.szavanna = [["." for _ in range(20)] for _ in range(20)]  # 20x20 mátrix
+        self.jatekev = 0  # Aktuális játkév
+        self.allatok = set()  # Állat objektumok(életkor, faj, kor) tárolása
+        self.novenyevok_cellaja = set()  # Növényevők (x,y) koordinátája
+        self.ragadozok_cellaja = set()  # Ragadozók (x,y) koordinátája
+        self.ujszulott_allatok = set()  # Külön tároljuk az újszülött állatobjektumokat
+        self.novenyevo_ujszulottek_cellaja = (
+            set()
+        )  # Újszülött növényevők (x,y) koordinátája
+        self.ragadozo_ujszulottek_cellaja = (
+            set()
+        )  # Újszülött ragadozók (x,y) koordinátája
+        self.szabadcellak = set()  # Üres cellák koordinátája(x,y)
 
-    def uj_tabla(self) -> list[list[str]]:
-        """Új táblát hoz létre"""
-        return [["." for _ in range(10)] for _ in range(10)]
+    def cellak_frissitese(self) -> None:
+        """Frissíti a ragadozók, növényevők, újszülöttek celláját, +szabadcellakat"""
+        self.novenyevok_cellaja = {
+            i.pozicio for i in self.allatok if i.faj == "novenyevo"
+        }
+        self.ragadozok_cellaja = {i.pozicio for i in self.allatok if i.faj == "husevo"}
+        self.novenyevo_ujszulottek_cellaja = {
+            i.pozicio for i in self.ujszulott_allatok if i.faj == "novenyevo"
+        }
+        self.ragadozo_ujszulottek_cellaja = {
+            i.pozicio for i in self.ujszulott_allatok if i.faj == "husevo"
+        }
 
-    def tabla_megjelenites(self, tabla: list[list[str]]) -> None:
-        """Megjeleníti a táblát"""
-        sorbetuk = "ABCDEFGHIJ"
-        [print(sorbetuk[i] + ")", *tabla[i]) for i in range(len(tabla))]
-        print("   0 1 2 3 4 5 6 7 8 9")
-    
-    def nevbeker(self, nev1, nev2) -> str:
-        '''Bekéri a neveket a játékosoktól'''
-        while True:
-            nev = input("Add meg a neved. (2-7) karakter hosszúságban: ")
-            if 2 > len(nev) or len(nev) > 7:
-                print("2-7 karakter hossszú nevet válassz!")
-            elif nev1 == nev or nev2 == nev:
-                print("Ne ugyanazt a nevet add meg mint a másik játékos")
+        osszes_elfoglalt_cella = (
+            self.ragadozok_cellaja
+            | self.novenyevok_cellaja
+            | self.novenyevo_ujszulottek_cellaja
+            | self.ragadozo_ujszulottek_cellaja
+        )
+        palya_osszes_cellaja = {(x, y) for x in range(20) for y in range(20)}
+        szabadcellak = palya_osszes_cellaja - osszes_elfoglalt_cella
+        self.szabadcellak = szabadcellak
+
+    def allatgeneralo(self, faj: str, pozicio: tuple[int, int]) -> None:
+        """Legenerálja az adott állatot, és belerakja az újszülött_allatok-ba"""
+        ragadozo_eletkor = random.randint(9, 12)  # Ragadozó maxéletkora 9-12 év
+        novenyevo_eletkor = random.randint(11, 14)  # Növényevő maxéletkora 11-14 év
+        if faj == "novenyevo":  # Ha az állat növényevő
+            szaporodasiido = 2  # Akkor 2 évente szaporodhat
+            maxeletkor = novenyevo_eletkor
+        else:
+            szaporodasiido = 3  # Ha ragadozó, akkor 3 évente szaporodhat
+            maxeletkor = ragadozo_eletkor
+
+        self.ujszulott_allatok.add(
+            Allat(faj, pozicio, maxeletkor, szaporodasiido)
+        )  # Újszülött létrehozása
+
+    def szavanna_frissito(self) -> None:
+        """Minden év végén frissítjük, és kinyomtatjuk a szavannát"""
+        self.szavanna = [
+            ["." for _ in range(20)] for _ in range(20)
+        ]  # Friss üres 20x20-as szavanna
+        for allat in self.allatok:
+            x, y = allat.pozicio
+            if allat.faj == "novenyevo":  # Ha az állat növényevő
+                self.szavanna[y][x] = (
+                    "\033[32mN\033[0m"  # Akkor a játéktérben N-el jelöljük a helyét
+                )
             else:
-                return nev
-
-
-    def hajo_bekeres(self) -> str:
-        """Bekéri a játékostól a hajó kezdőkoordinátáját"""
-        print("Add meg a hajó kezdő koordinátáját (A-J-ig és 0-9-ig Pl A0 vagy J9) ")
-        kezdokordinata = input("Kezdő koordináta: ").upper()
-        return kezdokordinata
-
-    def irany_bekeres(self) -> str:
-        """Bekéri a játékostól az irányt"""
-        print("Add meg a hajó irányt (É/K/NY/D):")
-        irany = input("Irány: ").upper()
-        return irany
-
-    def iranyellenorzo(self, irany: str) -> bool:
-        """Ez a függvény, ellenőrzi, hogy amennyiben szükséges megadni irányt, jól adta e meg az irányt a felhasználó."""
-        return irany.upper() in ["É", "D", "NY", "K"]
-
-    def sor_oszlop_ellenorzes(self, sor: str, oszlop: str) -> bool:
-        """Ellenőrzi, hogy a kezdő koordináta pályán belül van e"""
-        return sor in "ABCDEFGHIJ" and oszlop in "0123456789"
-
-    def kiszamol(self, sor: str, oszlop: str, hossz: int, irany: str) -> set[tuple[int, int]]:
-        """Kiszámolja a hajó további koordinátáit"""
-        sor, oszlop = "ABCDEFGHIJ".index(sor.upper()), int(oszlop)
-        koordinatak = [(oszlop, sor)]
-        if hossz > 1:
-            iranyok = {"É": (0, -1), "D": (0, 1), "K": (1, 0), "NY": (-1, 0)}
-            for _ in range(int(hossz) - 1):
-                x, y = koordinatak[-1]
-                koordinatak.append((x + iranyok[irany][0], y + iranyok[irany][1]))
-            return [(x, y) for x, y in koordinatak]
-        else:
-            return koordinatak
-
-    def hajo_melletti_kordinatak(
-        self, koordinatak: list[tuple[int, int]]
-    ) -> set[tuple[int, int]]:
-        """Kiszámolja a hajó mellett lévő koordinátákat"""
-        mellettikord = set()
-        pontok = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, 1), (1, -1), (-1, -1), (1, 1)]
-
-        for x, y in koordinatak:
-            for pont in pontok:
-                if 0 <= x + pont[0] < 10 and 0 <= y + pont[1] < 10:
-                    mellettikord.add((x + pont[0], y + pont[1]))
-
-        return mellettikord - set(koordinatak)
-
-    def utkozes_ellenorzo(self, hajokoordinatak: list[str]) -> bool:
-        """Ellenőrzi, hogy nem e ütközik más hajóval/nincs mellette közvetlen más hajó"""
-        hajokoordinatak = set(hajokoordinatak)
-        if hajokoordinatak & self.hajokoordinatai:
-            return False
-        if hajokoordinatak & self.hajok_melletti_koordinatak:
-            return False
-        return True
-
-    def palyan_beluli_ellenorzes(self, hajokoordinatak: list[tuple[int, int]]) -> bool:
-        """Ellenőrzi, hogy a hajó nem e lóg ki a pályáról"""
-        x, y = hajokoordinatak[-1]
-        return 0 <= x <= 9 and 0 <= y <= 9
-
-    def hajoellenorzes(
-        self, kezdokoordinata: str, hossz: int, irany=None
-    ) -> list[str] | ValueError:
-        """Ellenőrzi a megadott hajót, ha nem felel meg, hibát dob, ellenben vissza adja a hajó koordinátáit."""
-        if len(kezdokoordinata) != 2:
-            raise ValueError(
-                "A kezdőkoordináta csak 2 elemből állhat egy betűből(A-J) és egy számból (0-9)"
-            )
-        sor = kezdokoordinata[0]
-        oszlop = kezdokoordinata[1]
-        if not self.sor_oszlop_ellenorzes(sor, oszlop):
-            raise ValueError(
-                "A kezdő koordináta érvénytelen! Csak A-J és 0-9 értékek engedélyezettek."
-            )
-
-        elif hossz != 1 and not self.iranyellenorzo(irany):
-            raise ValueError("Az irány érvénytelen! Csak É/D/K/NY engedélyezettek.")
-
-        else:
-            hajokoordinatak = self.kiszamol(sor, oszlop, hossz, irany)
-
-            if not self.palyan_beluli_ellenorzes(hajokoordinatak):
-                raise ValueError("A hajó egy vagy több része a pályán kívülre esik!")
-
-            if not self.utkozes_ellenorzo(hajokoordinatak):
-                raise ValueError(
-                    "A hajó ütközik egy másik hajóval, vagy túl közel van hozzá."
+                self.szavanna[y][x] = (
+                    "\033[31mR\033[0m"  # Ha pedig ragadozó, akkor R-el jelöljük
                 )
 
-            return hajokoordinatak
+    def kezdeti_allatok_generalasa(self) -> None:
+        """Legeneráljuk a 0 év állatait."""
+        allat_szamlalo = 0
+        while allat_szamlalo != 180:  # Ez 180 állat generálásáig megy
+            veletlen_pozicio = (
+                random.randint(0, 19),
+                random.randint(0, 19),
+            )  # Véletlen koordináta a 20x20 mátrixban
+            if veletlen_pozicio in self.szabadcellak:
+                veletlen_allat = random.randint(1, 100)
+                if (
+                    veletlen_allat < 65
+                ):  # 65% esély arra, hogy az állat növényevő legyen
+                    veletlen_ev = random.randint(11, 14)
+                    faj = "novenyevo"
+                    szaporodasiido = 2
+                else:  # 35%esély pedig arra, hogy húsevő
+                    veletlen_ev = random.randint(9, 12)
+                    szaporodasiido = 3
+                    faj = "husevo"
+                self.allatok.add(
+                    Allat(faj, veletlen_pozicio, veletlen_ev, szaporodasiido)
+                )  # Az állatokat hozzáadjuk
+                allat_szamlalo += 1  # Növeljük a hozzáadott állatok számát
 
-    def hajoelhelyezes(self, hajokoordinatak: list[tuple[int, int]]) -> None:
-        """Ez a függvény elhelyezi a táblán az új hajót"""
-        for i in hajokoordinatak:
-            x, y = i[0], i[1]
-            self.tabla[y][x] = "X"
+    def jatekev_novelo(self) -> None:
+        """Minden évben megnöveli 1-el a játékévet"""
+        self.jatekev += 1
 
-    def hajokord_es_hajokordmelletti(
-        self, hajokoordinatak: list[tuple[int, int]]
-    ) -> None:
-        """Rögzíti az új hajó koordinátáját és a mellette lévő koordinátákat"""
-        self.hajok_melletti_koordinatak.update(
-            self.hajo_melletti_kordinatak(hajokoordinatak)
-        )
-        self.hajokoordinatai.update(hajokoordinatak)
+    def ujszulott_allatok_kezelese(self) -> None:
+        """Az újszülötteketet kezeli"""
+        self.allatok.update(
+            self.ujszulott_allatok
+        )  # Az újszülötteket hozzáadjuk az állatokhoz.
+        self.ujszulott_allatok = set()  # Az újszülötteket pedig kiürítjük
 
-    def hajoklistamodosito(
-        self, hanyadikhajo: int, hajokoordinatak: list[tuple[int, int]]
-    ) -> None:
-        """Itt módosítjuk az összes hajó tulajdonságait, pl belerakjuk a koordinatait, és a mellette lévő koordinátákat"""
-        self.hajoklista[hanyadikhajo - 1].koordinatak = hajokoordinatak
-        self.hajoklista[hanyadikhajo - 1].mellettekord = self.hajo_melletti_kordinatak(
-            hajokoordinatak
-        )
+    def eletkornovelo(self) -> None:
+        """Növeli az állatok életkorát"""
+        for allat in self.allatok:
+            allat.eletkor += 1
 
-    def tippbekero(self, nev: str) -> str:
-        """Bekéri a tippeket"""
-        tipp = input(f"{nev}: Hova lősz?: ").upper()
-        return tipp
+    def ehsegnovelo(self) -> None:
+        """Növeli a ragadozók éhség szintjét."""
+        for allat in self.allatok:
+            if allat.faj == "husevo":
+                allat.ehsegszint += 1
 
-    def tippellenorzo(self, tipp: str, tippjeid: list[int]) -> bool | ValueError:
-        """Ellenőrzi a tippet, visszatér az eredménnyel"""
-        if len(tipp) != 2:
-            raise ValueError(
-                "2 elemből kell állnia a tippnek, egy betűből (A-J) és egy számól (0-9)"
-            )
-        if not self.sor_oszlop_ellenorzes(tipp[0].upper(), tipp[1].upper()):
-            raise ValueError(
-                "A-J között és 0-9 között add meg a koordinátát, pl A0 vagy J9"
-            )
-        if tipp in tippjeid:
-            raise ValueError("Ezt már tippelted...")
-        return True
+    def meghal(self) -> None:
+        """Ha az állat elérte a maximális életkorát,
+        akkor meghal, vagy ragadozónál az éhségszint eléri a 2-t"""
+        meghalt = set()
+        for allat in self.allatok:
+            if allat.eletkor + 1 >= allat.maxeletkor or allat.ehsegszint >= 3:
+                meghalt.add(allat)
+        self.allatok = self.allatok - meghalt
 
-    def hajomodositasok(self, tipp: str, egyik: object, masik: object) -> str:
-        """Módosítja a tippek alapján a táblát, hajólistát, visszajelzést küld a tipp sikerességéről/sikertelenségéről"""
-        egyik.tippelt_cellak.append(tipp)
-        x, y = int(tipp[1]), ord(tipp[0]) - ord("A")
-        tipp_tuple = (x, y)
+    def egysugarukor(self, pozicio: tuple[int, int]) -> set:
+        """Kiszámolja a pályán belül xy pozíció mellett
+        lévő cellákat, és visszadja annak listáját"""
+        iranyok = {
+            (0, 1),
+            (0, -1),
+            (1, 0),
+            (-1, 0),
+            (1, 1),
+            (1, -1),
+            (-1, -1),
+            (-1, 1),
+        }  # Irányok
+        egysugaru_szabadkord = set()
+        x1, y1 = pozicio
+        for x2, y2 in iranyok:
+            uj_pozicio = (x1 + x2, y1 + y2)
+            if 0 <= uj_pozicio[0] <= 19 and 0 <= uj_pozicio[1] <= 19:
+                egysugaru_szabadkord.add(uj_pozicio)
+        return egysugaru_szabadkord
 
-        if tipp_tuple in masik.hajokoordinatai:
-            for i in masik.hajoklista:
-                if tipp_tuple in i.koordinatak:
-                    i.eltalaltkoordinatak.append(tipp_tuple)
-                    koordinatak_kiirasa = [
-                        ("ABCDEFGHIJ"[y] + str(x)) for x, y in i.eltalaltkoordinatak
-                    ]
-                    masik.titoktabla[y][x] = "X"
-                    szoveg = f"""\033[32m Eltaláltad, lövés koordinata: {tipp}
-    Az eltálalált hajó hossza: {i.hossz}
-    Ennyit találtál el belőle: {len(i.eltalaltkoordinatak)}
-    Ezeket a koordinátákat találtad el: {koordinatak_kiirasa}\033[0m
-                    """
-                    if len(i.koordinatak) == len(i.eltalaltkoordinatak):
-                        egyik.eltalalt_hajok_szama += 1
-                        szoveg += "\033[32mTalált süllyedt. \nA teljes hajó megsemmisült \033[0m"
-                    self.tablakmegjelenitese(
-                        player1.titoktabla, player2.titoktabla, player1.nev, player2.nev
-                    )
-                    return szoveg
+    def allatmozgato(self, pozicio: tuple[int, int]) -> tuple:
+        """Az állat mellett visszaad egy szabad helyet, ha van,
+        ellenkező esetben a saját koordinátáját adja vissza."""
+        szabadhelyek = self.egysugarukor(pozicio) & self.szabadcellak
+        if szabadhelyek:
+            return random.choice(list(szabadhelyek))
+        return pozicio
+
+    def szaporodas(self, allat: Allat) -> bool:
+        """Megpróbál új utódot létrehozni, visszatér azzal, hogy sikerült-e"""
+        allatpozicio = allat.pozicio
+        faj = allat.faj
+        szaporodasiido = allat.szaporodasiido
+        if faj == "novenyevo":
+            fajcellaja = self.novenyevok_cellaja
         else:
-            masik.titoktabla[y][x] = "#"
-            self.tablakmegjelenitese(
-                player1.titoktabla, player2.titoktabla, player1.nev, player2.nev
-            )
-            return "Nem talált"
+            fajcellaja = self.ragadozok_cellaja
 
-    def tablakmegjelenitese(
-        self, tabla1: list[list[str]], tabla2: list[list[str]], nev1: str, nev2: str
-    ):
-        "Megjeleníti a táblákat, és a hozzájuk tartozó neveket"
-        sorbetuk = "ABCDEFGHIJ"
-        print(f"{nev1}\t\t\t\t\t{nev2}")
-        for i in range(len(tabla1)):
-            print(
-                sorbetuk[i] + ")",
-                *tabla1[i],
-                "            ",
-                sorbetuk[i] + ")",
-                *tabla2[i],
-            )
-        print("   0 1 2 3 4 5 6 7 8 9                 0 1 2 3 4 5 6 7 8 9")
-
-
-player1 = Torpedeo()
-player2 = Torpedeo()
-print("1. Játékos:")
-player1.nev = player1.nevbeker(player1.nev, player2.nev)
-print("2. Játékos:")
-player2.nev = player2.nevbeker(player1.nev, player2.nev)
-
-playerek = [player1, player2]
-for player in playerek:
-    os.system("clear") | os.system("cls")
-    
-    player.tabla_megjelenites(player.tabla)
-    for i, hajo in enumerate(
-        player.hajoklista, start=1
-    ):  # Hajók listájának végigjárása
-        while True:  # Addig ismétel, amíg sikeresen el nem helyezi a hajót
-            try:
-                print(f"{player.nev} add meg a hajóid")
-                print(f"\nHelyezd el a(z) {i}. hajót! Hossz: {hajo.hossz} mező")
-                kezdokoordinata = player.hajo_bekeres()
-                if hajo.hossz != 1:
-                    irany = player.irany_bekeres()
-                    hajokoordinatak = player.hajoellenorzes(
-                        kezdokoordinata, hajo.hossz, irany
+        if self.egysugarukor(allatpozicio) & fajcellaja:
+            for masik_allat in self.allatok:
+                if (
+                    masik_allat.faj == faj
+                    and masik_allat.eletkor % szaporodasiido == 0
+                    and masik_allat.ehsegszint == 0
+                    and allatpozicio != masik_allat.pozicio
+                    and masik_allat.pozicio in self.egysugarukor(allatpozicio)
+                ):
+                    utod_lehetseges_helye = self.szabadcellak & (
+                        self.egysugarukor(allatpozicio)
+                        | self.egysugarukor(masik_allat.pozicio)
+                        - {allatpozicio}
+                        - {masik_allat.pozicio}
                     )
+                    if utod_lehetseges_helye:
+                        masik_allat.szaporodott_az_evben = True
+                        allat.szaporodott_az_evben = True
+                        ujutodpozicio = random.choice(list(utod_lehetseges_helye))
+                        # print(allatpozicio, masik_allat.pozicioja, ujutodpozicio)
+                        self.allatgeneralo(masik_allat.faj, ujutodpozicio)
+                        return True
+        return False
+
+    def novenyevo_mozgas(self, allatpozicio: tuple[int, int], allatobjektum: Allat) -> None:
+        """Átmozgatja a növényevőket szabad helyre, ha van."""
+        self.szavanna[allatpozicio[1]][allatpozicio[0]] = "."
+        allatobjektum.pozicio = self.allatmozgato(allatpozicio)
+        self.szavanna[allatpozicio[1]][allatpozicio[0]] = "N"
+
+    def husevo_mozgas(self, allatpozicio: tuple[int, int], allatobjektum: Allat) -> None:
+        """A húsevő mellett lévő egyik növényevőt fefalja
+        A meghalt állatot kiveszi a set-ből
+        Ha nincs növényevő, a közelében, akkor egy random koordinátára
+        lép ha van üres hely mellette.."""
+        novenyevok = set()
+        if self.egysugarukor(allatpozicio) & self.novenyevok_cellaja:
+            novenyevok.update(self.allatok)
+        if self.egysugarukor(allatpozicio) & self.novenyevo_ujszulottek_cellaja:
+            novenyevok.update(self.ujszulott_allatok)
+        eltavolitando = set()
+        for preda in novenyevok:
+            if preda.faj == "novenyevo" and preda.pozicio in self.egysugarukor(
+                allatpozicio
+            ):
+                allatobjektum.ehsegszint = 0
+                allatobjektum.pozicio = preda.pozicio
+                eltavolitando.add(preda)
+                break
+        else:
+            allatobjektum.pozicio = self.allatmozgato(allatpozicio)
+        self.allatok = self.allatok - eltavolitando
+        self.ujszulott_allatok = self.ujszulott_allatok - eltavolitando
+
+    def fuggvenyhivasok(self) -> None:
+        """Meghívjuk a függvényeket minden év elején"""
+        self.szavanna_frissito()
+        for i in peldany.szavanna:  # Végig iterál a szavannán
+            print(*i)  # Kiírja a szavannát soronként
+        input("Nyomj entert")  # A következő év szimulációját érjük el az inputtal
+        os.system("cls") | os.system("clear")
+        self.jatekev_novelo()  # Növeli a játékévet
+        print(self.jatekev, "ÉV")  # Kiírja az éppen aktuális játékévet
+        self.ujszulott_allatok_kezelese()  # Kezeli az újszülötteket
+        self.eletkornovelo()  # Minden állat életkorát megnöveli 1-el
+        self.ehsegnovelo()  # Ragadozók éhségszintjét növeli 1-el
+        self.meghal()  # Ha az állat öregségben/éhezésben meghal, akkor eltávolítja
+        self.cellak_frissitese()  # Frissíti a cellákat
+        print("Szabad cellák száma: ", len(self.szabadcellak))
+        print("Ragadozók száma: ", len(self.ragadozok_cellaja))
+        print("Növényevők száma: ", len(self.novenyevok_cellaja))
+
+
+peldany = Szimulacio()
+print(peldany.jatekev, " ÉV")  # Kiírja az aktuális játákévet
+peldany.cellak_frissitese()  # Frissíti a cellákat
+peldany.kezdeti_allatok_generalasa()  # Feltölti állatokkal az osztályt
+peldany.cellak_frissitese()  # Frissíti a cellákat
+
+print("Szabad cellák száma: ", len(peldany.szabadcellak))
+print("Ragadozók száma: ", len(peldany.ragadozok_cellaja))
+print("Növényevők száma: ", len(peldany.novenyevok_cellaja))
+
+# Szimuláció elindítása
+peldany.fuggvenyhivasok()
+
+for _ in range(100):  # 100 év szimulációja
+    peldany.fuggvenyhivasok()
+    for allat in peldany.allatok:  # Végigmegy az állatokon
+        if allat.eletkor % allat.szaporodasiido == 0:  # Ha szaporodási évebn van
+            if not allat.szaporodott_az_evben:  # Ha még nem szaporodott az évben.
+                SZAPORODIK = peldany.szaporodas(
+                    allat
+                )  # Meghívjuk a szaporodás függvényt
+                if not SZAPORODIK:  # Ha nem sikerült szaporodnia
+                    if allat.faj == "novenyevo":  # Ha növényevő
+                        peldany.novenyevo_mozgas(
+                            allat.pozicio, allat
+                        )  # Átmozgatjuk egy másik helyre
+                        peldany.cellak_frissitese()  # Frissítjük a cellákat
+                    else:  # Ha húsevő
+                        peldany.husevo_mozgas(
+                            allat.pozicio, allat
+                        )  # Átmozgatjuk egy másik helyre
+                        peldany.cellak_frissitese()  # Frissítjük a cellákat
+                    peldany.szaporodas(allat)  # Újra megpróbál szaporodni
                 else:
-                    hajokoordinatak = player.hajoellenorzes(kezdokoordinata, hajo.hossz)
-
-                player.hajoelhelyezes(hajokoordinatak)
-                player.hajokord_es_hajokordmelletti(hajokoordinatak)
-                player.hajoklistamodosito(i, hajokoordinatak)
-
-                os.system("clear") | os.system("cls")
-                player1.tabla_megjelenites(player.tabla)
-                print("\033[32m Hajó sikeresen elhelyezve! \033[0m")
-                break
-            except ValueError as e:
-                os.system("clear") | os.system("cls")
-                player1.tabla_megjelenites(player.tabla)
-                print(f"\033[31m Hiba: {e} \033[0m")
-os.system("clear") | os.system("cls")
-player1.tablakmegjelenitese(
-    player1.titoktabla, player2.titoktabla, player1.nev, player2.nev
-)
-jatekosvalaszto = 0
-while True:
-    egyik = playerek[jatekosvalaszto % 2]
-    masik = playerek[(jatekosvalaszto % 2) - 1]
-    try:
-        while True:
-            tipp = egyik.tippbekero(egyik.nev)
-            if egyik.tippellenorzo(tipp, egyik.tippelt_cellak):
-                os.system("clear") | os.system("cls")
-                print(egyik.hajomodositasok(tipp, egyik, masik))
-                jatekosvalaszto += 1
-                break
-    except ValueError as e:
-        os.system("clear") | os.system("cls")
-        egyik.tablakmegjelenitese(
-            player1.titoktabla, player2.titoktabla, player1.nev, player2.nev
-        )
-        print(f"\033[31m Hiba: {e} \033[0m")
-
-    if egyik.eltalalt_hajok_szama == 6:
-        print(f"\033[31mA győztes: {egyik.nev}\033[0m")
-        print("ITT voltak a hajók:")
-        egyik.tablakmegjelenitese(
-            player1.tabla, player2.tabla, player1.nev, player2.nev
-        )
-        break
+                    peldany.cellak_frissitese()  # Ha elsőre sikerült szaporodnia, akkor frissítjük a cellákat
+            else:  # Ha már szaporodott az évben, de még nem mozgott, akkor átmozgatjuk.
+                if allat.faj == "novenyevo":  # Ha növényevő
+                    peldany.novenyevo_mozgas(
+                        allat.pozicio, allat
+                    )  # Átmozgatjuk egy másik helyre
+                    peldany.cellak_frissitese()  # Frissítjük a cellákat
+                else:  # Ha húsevő
+                    peldany.husevo_mozgas(
+                        allat.pozicio, allat
+                    )  # Átmozgatjuk egy másik helyre
+                    peldany.cellak_frissitese()  # Frissítjük a cellákat
+            peldany.szaporodas(allat)  # Újra megpróbál szaporodni
+            peldany.cellak_frissitese()  # frissítjük a cellákat
+        else:  # Ha nincs szaporodási évben, akkor átmozgatjuk
+            if allat.faj == "novenyevo":  # Ha növényevő
+                peldany.novenyevo_mozgas(
+                    allat.pozicio, allat
+                )  # Meghívjuk a növényevők mozgása függvényt
+                peldany.cellak_frissitese()  # Frissítjük a cellákat
+            else:  # Ha húsevő
+                peldany.husevo_mozgas(
+                    allat.pozicio, allat
+                )  # Meghívjük a húsevőmozgása függvényt
+                peldany.cellak_frissitese()  # Frissítjük a cellákat
+        peldany.cellak_frissitese()  # Frissítjük a cellákat
